@@ -9,8 +9,8 @@
         body { font-family: 'Kanit', sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
         .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
         .points-box { background: #FF9800; color: white; padding: 10px; border-radius: 10px; display: inline-block; margin-top: 10px; font-weight: bold;}
-        .tabs { display: flex; background: white; border-bottom: 2px solid #ddd; }
-        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #555; }
+        .tabs { display: flex; background: white; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 10;}
+        .tab { flex: 1; padding: 15px 5px; text-align: center; cursor: pointer; font-weight: bold; color: #555; font-size: 0.9em;}
         .tab.active { color: #4CAF50; border-bottom: 3px solid #4CAF50; }
         .container { padding: 20px; }
         
@@ -33,7 +33,21 @@
         .btn-confirm-use { background: #e91e63; color: white; border: none; padding: 12px 25px; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%; }
         .btn-close { position: absolute; top: 10px; right: 15px; font-size: 25px; cursor: pointer; color: #aaa; }
 
-        #inventory-section { display: none; }
+        /* สไตล์หน้าเส้นทาง (Timeline) */
+        .timeline { position: relative; padding-left: 30px; margin-top: 20px;}
+        .timeline-item { position: relative; padding-bottom: 30px; }
+        .timeline-item::before { content: ''; position: absolute; left: -28px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: #ddd; border: 4px solid white; box-shadow: 0 0 0 3px #ddd; z-index: 2;}
+        .timeline-item::after { content: ''; position: absolute; left: -19px; top: 20px; width: 4px; height: calc(100% - 10px); background: #ddd; z-index: 1;}
+        .timeline-item:last-child::after { display: none; }
+        .timeline-item.active::before { background: #FF9800; box-shadow: 0 0 0 3px #FF9800; }
+        .timeline-item.active::after { background: #FF9800; }
+        
+        .timeline-content { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; top: -5px;}
+        .timeline-day { font-weight: bold; color: #333; font-size: 1.1em; margin: 0 0 5px 0;}
+        .timeline-reward { color: #4CAF50; margin: 0; font-size: 0.9em; display: flex; align-items: center; gap: 5px;}
+        .timeline-reward.locked { color: #999; }
+
+        #inventory-section, #journey-section { display: none; }
     </style>
 </head>
 <body>
@@ -43,9 +57,9 @@
             <span class="btn-close" onclick="closeModal()">&times;</span>
             <h2>บัตรรองรับสิทธิ์</h2>
             <p id="modal-reward-name" style="font-weight:bold; font-size:1.2em;"></p>
-            <img id="modal-reward-img" class="coupon-img" src="" alt="reward">
+            <img id="modal-reward-img" class="coupon-img" src="">
             <p class="staff-note">** สำหรับพนักงาน: กรุณากดปุ่มด้านล่างเพื่อยืนยันการใช้สิทธิ์ **</p>
-            <button id="confirm-use-btn" class="btn-confirm-use" onclick="confirmUseCoupon()">ยืนยันการใช้คูปอง</button>
+            <button class="btn-confirm-use" onclick="confirmUseCoupon()">ยืนยันการใช้คูปอง</button>
         </div>
     </div>
 
@@ -56,7 +70,8 @@
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('shop')">🛒 ร้านค้า</div>
-        <div class="tab" onclick="switchTab('inventory')">🎒 กระเป๋าของฉัน</div>
+        <div class="tab" onclick="switchTab('inventory')">🎒 กระเป๋า</div>
+        <div class="tab" onclick="switchTab('journey')">🗺️ เส้นทาง</div>
     </div>
 
     <div class="container">
@@ -64,20 +79,40 @@
             <h3 style="color: #333;">ของรางวัลที่แลกได้</h3>
             <div id="rewards-list">กำลังโหลด...</div>
         </div>
+        
         <div id="inventory-section">
             <h3 style="color: #333;">คูปองที่ใช้งานได้</h3>
             <div id="inventory-list">กำลังโหลด...</div>
         </div>
+
+        <div id="journey-section">
+            <h3 style="color: #333;">เส้นทางสุขภาพของคุณ</h3>
+            <p style="color: #666; font-size: 0.9em;">จดบันทึกอาหารเพื่อสะสมวันเดินทางและรับรางวัลพิเศษ!</p>
+            <p style="font-weight: bold; color: #4CAF50;">ปัจจุบันคุณเดินทางมาแล้ว: <span id="total-days-count" style="font-size:1.2em; color:#FF9800;">0</span> วัน</p>
+            
+            <div class="timeline" id="timeline-list">
+                กำลังโหลดแผนที่...
+            </div>
+        </div>
     </div>
 
     <script>
-        // ⚠️ อย่าลืมแก้ 2 บรรทัดนี้ก่อนเซฟ
+        // ⚠️ อย่าลืมแก้ 2 บรรทัดนี้ให้เป็นข้อมูลของคุณ
         const LIFF_ID = "2009632908-bNhIr1UY"; 
         const API_URL = "https://unwitnessed-jeanelle-colacobiotic.ngrok-free.dev/api"; 
 
         let currentUserId = "";
         let currentUserPoints = 0;
         let selectedInventoryId = null;
+
+        // ข้อมูล Milestone (ปรับแต่งข้อความ/ของรางวัลได้ตามใจชอบ)
+        const journeyMilestones = [
+            { day: 1, title: "เริ่มต้นการเดินทาง", reward: "รับ 10 แต้มฟรี" },
+            { day: 3, title: "นักกินฝึกหัด", reward: "🎁 คูปองส่วนลด 10 บาท" },
+            { day: 7, title: "ผู้เชี่ยวชาญโซเดียม", reward: "🎁 คูปองฟรีชาไข่มุก 1 แก้ว" },
+            { day: 14, title: "ปรมาจารย์สุขภาพ", reward: "🎁 คูปองส่วนลด 50 บาท" },
+            { day: 30, title: "เทพเจ้าไร้พุง", reward: "👑 บัตรสมาชิก VIP" }
+        ];
 
         const fetchOptions = { headers: { 'ngrok-skip-browser-warning': 'true', 'Content-Type': 'application/json' } };
 
@@ -131,7 +166,6 @@
                 const inventory = await res.json();
                 const list = document.getElementById("inventory-list");
                 
-                // โชว์เฉพาะคูปองที่ยังไม่ได้ใช้
                 const activeCoupons = inventory.filter(item => !item.is_used);
                 
                 if(activeCoupons.length === 0) {
@@ -154,6 +188,33 @@
             } catch (err) { console.error(err); }
         }
 
+        async function loadJourney() {
+            try {
+                const res = await fetch(`${API_URL}/journey/${currentUserId}`, fetchOptions);
+                const data = await res.json();
+                const totalDays = data.total_active_days || 0;
+                
+                document.getElementById("total-days-count").innerText = totalDays;
+                
+                const timelineContainer = document.getElementById("timeline-list");
+                timelineContainer.innerHTML = "";
+
+                journeyMilestones.forEach(stone => {
+                    const isPassed = totalDays >= stone.day;
+                    timelineContainer.innerHTML += `
+                        <div class="timeline-item ${isPassed ? 'active' : ''}">
+                            <div class="timeline-content">
+                                <p class="timeline-day">วันที่ ${stone.day}: ${stone.title}</p>
+                                <p class="timeline-reward ${!isPassed ? 'locked' : ''}">
+                                    ${isPassed ? '✅ ปลดล็อกแล้ว: ' : '🔒 รอปลดล็อก: '} ${stone.reward}
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) { console.error(err); }
+        }
+
         function openCouponModal(invId, name, img) {
             selectedInventoryId = invId;
             document.getElementById("modal-reward-name").innerText = name;
@@ -165,7 +226,6 @@
             document.getElementById("couponModal").style.display = "none";
         }
 
-        // ฟังก์ชันเมื่อพนักงานกดยืนยันการใช้คูปอง
         async function confirmUseCoupon() {
             if (confirm("ยืนยันการใช้สิทธิ์? (กดแล้วคูปองจะหายไปทันที)")) {
                 try {
@@ -178,7 +238,7 @@
                     if (result.status === 'success') {
                         alert("ใช้สิทธิ์สำเร็จ! ขอบคุณที่ใช้บริการค่ะ");
                         closeModal();
-                        loadInventory(); // รีเฟรชหน้ากระเป๋า คูปองจะหายไป
+                        loadInventory(); 
                     }
                 } catch (err) { console.error(err); }
             }
@@ -208,14 +268,20 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById('shop-section').style.display = 'none';
             document.getElementById('inventory-section').style.display = 'none';
+            document.getElementById('journey-section').style.display = 'none';
+
             if(tab === 'shop') {
                 document.querySelectorAll('.tab')[0].classList.add('active');
                 document.getElementById('shop-section').style.display = 'block';
                 loadRewards();
-            } else {
+            } else if(tab === 'inventory') {
                 document.querySelectorAll('.tab')[1].classList.add('active');
                 document.getElementById('inventory-section').style.display = 'block';
                 loadInventory();
+            } else {
+                document.querySelectorAll('.tab')[2].classList.add('active');
+                document.getElementById('journey-section').style.display = 'block';
+                loadJourney();
             }
         }
 
