@@ -14,7 +14,6 @@
         .tab.active { color: #4CAF50; border-bottom: 3px solid #4CAF50; }
         .container { padding: 20px; }
         
-        /* สไตล์การ์ด */
         .card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 15px;}
         .card img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; }
         .card-info { flex: 1; }
@@ -24,7 +23,6 @@
         .btn-redeem:disabled { background: #ccc; }
         .btn-use { background: #03A9F4; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         
-        /* สไตล์ Modal หน้าบัตรคูปอง */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
         .modal-content { background-color: white; margin: 15% auto; padding: 20px; border-radius: 15px; width: 80%; text-align: center; position: relative; border: 4px dashed #4CAF50; }
         .modal-content h2 { color: #4CAF50; margin-top: 0; }
@@ -33,7 +31,6 @@
         .btn-confirm-use { background: #e91e63; color: white; border: none; padding: 12px 25px; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%; }
         .btn-close { position: absolute; top: 10px; right: 15px; font-size: 25px; cursor: pointer; color: #aaa; }
 
-        /* สไตล์หน้าเส้นทาง (Timeline) */
         .timeline { position: relative; padding-left: 30px; margin-top: 20px;}
         .timeline-item { position: relative; padding-bottom: 30px; }
         .timeline-item::before { content: ''; position: absolute; left: -28px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: #ddd; border: 4px solid white; box-shadow: 0 0 0 3px #ddd; z-index: 2;}
@@ -89,15 +86,12 @@
             <h3 style="color: #333;">เส้นทางสุขภาพของคุณ</h3>
             <p style="color: #666; font-size: 0.9em;">จดบันทึกอาหารเพื่อสะสมวันเดินทางและรับรางวัลพิเศษ!</p>
             <p style="font-weight: bold; color: #4CAF50;">ปัจจุบันคุณเดินทางมาแล้ว: <span id="total-days-count" style="font-size:1.2em; color:#FF9800;">0</span> วัน</p>
-            
-            <div class="timeline" id="timeline-list">
-                กำลังโหลดแผนที่...
-            </div>
+            <div class="timeline" id="timeline-list">กำลังโหลดแผนที่...</div>
         </div>
     </div>
 
     <script>
-        // ⚠️ อย่าลืมแก้ 2 บรรทัดนี้ให้เป็นข้อมูลของคุณ
+        // ⚠️ ใส่ข้อมูลของคุณที่นี่
         const LIFF_ID = "2009632908-bNhIr1UY"; 
         const API_URL = "https://unwitnessed-jeanelle-colacobiotic.ngrok-free.dev/api"; 
 
@@ -105,13 +99,17 @@
         let currentUserPoints = 0;
         let selectedInventoryId = null;
 
-        // ข้อมูล Milestone (ปรับแต่งข้อความ/ของรางวัลได้ตามใจชอบ)
+        // อัปเดตข้อมูลของรางวัลตามแผนเส้นทางใหม่
         const journeyMilestones = [
-            { day: 1, title: "เริ่มต้นการเดินทาง", reward: "รับ 10 แต้มฟรี" },
-            { day: 3, title: "นักกินฝึกหัด", reward: "🎁 คูปองส่วนลด 10 บาท" },
-            { day: 7, title: "ผู้เชี่ยวชาญโซเดียม", reward: "🎁 คูปองฟรีชาไข่มุก 1 แก้ว" },
-            { day: 14, title: "ปรมาจารย์สุขภาพ", reward: "🎁 คูปองส่วนลด 50 บาท" },
-            { day: 30, title: "เทพเจ้าไร้พุง", reward: "👑 บัตรสมาชิก VIP" }
+            { day: 1,  title: "วันแรกของการเริ่มต้น", reward: "🎁 คูปองพรีเมี่ยม 1 แถม 1" },
+            { day: 4,  title: "ผู้สนับสนุนใจดี", reward: "🚚 คูปองลดค่าส่งฟรี" },
+            { day: 7,  title: "นักกินตัวยง", reward: "🔥 คูปองส่วนลด 50%" },
+            { day: 10, title: "สะสมพลัง", reward: "💎 รับ 10 แต้ม" },
+            { day: 12, title: "คนรักเส้น", reward: "🍜 คูปองส่วนลดเมนูราเมง" },
+            { day: 14, title: "ก้าวกระโดด", reward: "💎 รับ 20 แต้ม" },
+            { day: 18, title: "สม่ำเสมอ", reward: "💎 รับ 10 แต้ม" },
+            { day: 21, title: "รางวัลใหญ่", reward: "🔥 คูปองส่วนลด 50%" },
+            { day: 26, title: "ใกล้ถึงจุดหมาย", reward: "💎 รับ 10 แต้ม" }
         ];
 
         const fetchOptions = { headers: { 'ngrok-skip-browser-warning': 'true', 'Content-Type': 'application/json' } };
