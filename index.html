@@ -14,6 +14,7 @@
         .tab.active { color: #4CAF50; border-bottom: 3px solid #4CAF50; }
         .container { padding: 20px; }
         
+        /* สไตล์การ์ด */
         .card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 15px;}
         .card img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; }
         .card-info { flex: 1; }
@@ -23,15 +24,34 @@
         .btn-redeem:disabled { background: #ccc; }
         .btn-use { background: #03A9F4; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         
+        /* สไตล์ Modal หน้าบัตรคูปอง */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
+        .modal-content { background-color: white; margin: 15% auto; padding: 20px; border-radius: 15px; width: 80%; text-align: center; position: relative; border: 4px dashed #4CAF50; }
+        .modal-content h2 { color: #4CAF50; margin-top: 0; }
+        .coupon-img { width: 150px; height: 150px; object-fit: cover; border-radius: 10px; margin: 10px 0; }
+        .staff-note { font-size: 0.8em; color: #888; margin-bottom: 15px; }
+        .btn-confirm-use { background: #e91e63; color: white; border: none; padding: 12px 25px; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn-close { position: absolute; top: 10px; right: 15px; font-size: 25px; cursor: pointer; color: #aaa; }
+
         #inventory-section { display: none; }
-        #loading-overlay { text-align: center; padding: 50px; color: #777; }
     </style>
 </head>
 <body>
 
+    <div id="couponModal" class="modal">
+        <div class="modal-content">
+            <span class="btn-close" onclick="closeModal()">&times;</span>
+            <h2>บัตรรองรับสิทธิ์</h2>
+            <p id="modal-reward-name" style="font-weight:bold; font-size:1.2em;"></p>
+            <img id="modal-reward-img" class="coupon-img" src="" alt="reward">
+            <p class="staff-note">** สำหรับพนักงาน: กรุณากดปุ่มด้านล่างเพื่อยืนยันการใช้สิทธิ์ **</p>
+            <button id="confirm-use-btn" class="btn-confirm-use" onclick="confirmUseCoupon()">ยืนยันการใช้คูปอง</button>
+        </div>
+    </div>
+
     <div class="header">
         <h2>ร้านค้า Salt Soulty 🥗</h2>
-        <div class="points-box">แต้มของคุณ: <span id="user-points">กำลังโหลด...</span> แต้ม</div>
+        <div class="points-box">แต้มของคุณ: <span id="user-points">...</span> แต้ม</div>
     </div>
 
     <div class="tabs">
@@ -42,32 +62,25 @@
     <div class="container">
         <div id="shop-section">
             <h3 style="color: #333;">ของรางวัลที่แลกได้</h3>
-            <div id="rewards-list">กำลังโหลดของรางวัล...</div>
+            <div id="rewards-list">กำลังโหลด...</div>
         </div>
-
         <div id="inventory-section">
-            <h3 style="color: #333;">คูปองของคุณ</h3>
-            <div id="inventory-list">กำลังโหลดคูปอง...</div>
+            <h3 style="color: #333;">คูปองที่ใช้งานได้</h3>
+            <div id="inventory-list">กำลังโหลด...</div>
         </div>
     </div>
 
     <script>
-        // ⚠️ ต้องแก้ไข 2 บรรทัดนี้ให้เป็นข้อมูลของคุณ!
-        const LIFF_ID = "2009632908-bNhIr1UY"; 
-        const API_URL = "https://unwitnessed-jeanelle-colacobiotic.ngrok-free.dev/api"; 
+        // ⚠️ อย่าลืมแก้ 2 บรรทัดนี้ก่อนเซฟ
+        const LIFF_ID = "ใส่_LIFF_ID_ของคุณ"; 
+        const API_URL = "https://ลิงก์-ngrok-ของคุณ.ngrok-free.dev/api"; 
 
         let currentUserId = "";
         let currentUserPoints = 0;
+        let selectedInventoryId = null;
 
-        // ฟังก์ชันช่วยใส่ Header สำหรับ ngrok
-        const fetchOptions = {
-            headers: {
-                'ngrok-skip-browser-warning': 'true',
-                'Content-Type': 'application/json'
-            }
-        };
+        const fetchOptions = { headers: { 'ngrok-skip-browser-warning': 'true', 'Content-Type': 'application/json' } };
 
-        // 1. เริ่มต้น LIFF
         async function initializeLiff() {
             try {
                 await liff.init({ liffId: LIFF_ID });
@@ -76,137 +89,136 @@
                     currentUserId = profile.userId;
                     await loadUserData();
                     await loadRewards();
-                } else {
-                    liff.login();
-                }
-            } catch (err) {
-                console.error("LIFF Init Error:", err);
-                document.getElementById("user-points").innerText = "Error";
-            }
+                } else { liff.login(); }
+            } catch (err) { console.error("LIFF Error:", err); }
         }
 
-        // 2. ดึงแต้ม User
         async function loadUserData() {
             try {
                 const res = await fetch(`${API_URL}/user/${currentUserId}`, fetchOptions);
                 const data = await res.json();
                 currentUserPoints = data.points;
                 document.getElementById("user-points").innerText = currentUserPoints;
-            } catch (err) {
-                console.error("Fetch User Data Error:", err);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // 3. ดึงรายการของรางวัล (ร้านค้า)
         async function loadRewards() {
             try {
                 const res = await fetch(`${API_URL}/rewards`, fetchOptions);
                 const rewards = await res.json();
                 const list = document.getElementById("rewards-list");
                 list.innerHTML = "";
-                
                 rewards.forEach(item => {
                     const canAfford = currentUserPoints >= item.points_required;
                     list.innerHTML += `
                         <div class="card">
-                            <img src="${item.image_url}" alt="reward">
+                            <img src="${item.image_url}">
                             <div class="card-info">
                                 <p class="card-title">${item.name}</p>
-                                <p class="card-points">💎 ใช้ ${item.points_required} แต้ม</p>
+                                <p class="card-points">💎 ${item.points_required} แต้ม</p>
                             </div>
-                            <button class="btn-redeem" onclick="redeemReward(${item.reward_id}, ${item.points_required})" ${!canAfford ? 'disabled' : ''}>
-                                ${canAfford ? 'แลกเลย' : 'แต้มไม่พอ'}
+                            <button class="btn-redeem" onclick="redeemReward(${item.reward_id}, ${item.points_required})" ${!canAfford?'disabled':''}>
+                                แลกเลย
                             </button>
-                        </div>
-                    `;
+                        </div>`;
                 });
-            } catch (err) {
-                console.error("Fetch Rewards Error:", err);
-                document.getElementById("rewards-list").innerHTML = "โหลดข้อมูลล้มเหลว กรุณาลองใหม่";
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // 4. ดึงกระเป๋าของฉัน
         async function loadInventory() {
             try {
                 const res = await fetch(`${API_URL}/inventory/${currentUserId}`, fetchOptions);
                 const inventory = await res.json();
                 const list = document.getElementById("inventory-list");
                 
-                if(inventory.length === 0) {
-                    list.innerHTML = "<p style='text-align:center; color:#999;'>ยังไม่มีคูปองในกระเป๋าจ้า แลกเลยๆ! 🎒</p>";
+                // โชว์เฉพาะคูปองที่ยังไม่ได้ใช้
+                const activeCoupons = inventory.filter(item => !item.is_used);
+                
+                if(activeCoupons.length === 0) {
+                    list.innerHTML = "<p style='text-align:center; color:#999;'>ไม่มีคูปองที่ใช้งานได้ในขณะนี้</p>";
                     return;
                 }
 
                 list.innerHTML = "";
-                inventory.forEach(item => {
-                    const isUsed = item.is_used;
+                activeCoupons.forEach(item => {
                     list.innerHTML += `
-                        <div class="card" style="opacity: ${isUsed ? '0.5' : '1'}">
-                            <img src="${item.rewards.image_url}" alt="reward">
+                        <div class="card">
+                            <img src="${item.rewards.image_url}">
                             <div class="card-info">
                                 <p class="card-title">${item.rewards.name}</p>
-                                <p class="card-points" style="color: ${isUsed ? 'red' : 'green'};">${isUsed ? 'ถูกใช้แล้ว' : 'พร้อมใช้งาน'}</p>
+                                <p class="card-points" style="color:green;">พร้อมใช้งาน</p>
                             </div>
-                            ${!isUsed ? `<button class="btn-use" onclick="alert('ยื่นหน้านี้ให้พนักงานดูเพื่อใช้สิทธิ์เลยจ้า!')">ใช้สิทธิ์</button>` : ''}
-                        </div>
-                    `;
+                            <button class="btn-use" onclick="openCouponModal(${item.inventory_id}, '${item.rewards.name}', '${item.rewards.image_url}')">ใช้สิทธิ์</button>
+                        </div>`;
                 });
-            } catch (err) {
-                console.error("Fetch Inventory Error:", err);
+            } catch (err) { console.error(err); }
+        }
+
+        function openCouponModal(invId, name, img) {
+            selectedInventoryId = invId;
+            document.getElementById("modal-reward-name").innerText = name;
+            document.getElementById("modal-reward-img").src = img;
+            document.getElementById("couponModal").style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById("couponModal").style.display = "none";
+        }
+
+        // ฟังก์ชันเมื่อพนักงานกดยืนยันการใช้คูปอง
+        async function confirmUseCoupon() {
+            if (confirm("ยืนยันการใช้สิทธิ์? (กดแล้วคูปองจะหายไปทันที)")) {
+                try {
+                    const res = await fetch(`${API_URL}/use-coupon`, {
+                        method: 'POST',
+                        headers: fetchOptions.headers,
+                        body: JSON.stringify({ inventory_id: selectedInventoryId })
+                    });
+                    const result = await res.json();
+                    if (result.status === 'success') {
+                        alert("ใช้สิทธิ์สำเร็จ! ขอบคุณที่ใช้บริการค่ะ");
+                        closeModal();
+                        loadInventory(); // รีเฟรชหน้ากระเป๋า คูปองจะหายไป
+                    }
+                } catch (err) { console.error(err); }
             }
         }
 
-        // 5. ฟังก์ชันกดแลกรางวัล
         async function redeemReward(rewardId, pointsRequired) {
-            if (confirm(`ยืนยันการใช้ ${pointsRequired} แต้มเพื่อแลกของรางวัลนี้ไหม?`)) {
+            if (confirm(`ใช้ ${pointsRequired} แต้มเพื่อแลกของรางวัลนี้?`)) {
                 try {
                     const res = await fetch(`${API_URL}/redeem`, {
                         method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'ngrok-skip-browser-warning': 'true' 
-                        },
-                        body: JSON.stringify({
-                            user_id: currentUserId,
-                            reward_id: rewardId,
-                            points_required: pointsRequired
-                        })
+                        headers: fetchOptions.headers,
+                        body: JSON.stringify({ user_id: currentUserId, reward_id: rewardId, points_required: pointsRequired })
                     });
-                    
                     const result = await res.json();
                     if (result.status === 'success') {
-                        alert("แลกสำเร็จ! คูปองอยู่ในกระเป๋าของฉันแล้ว 🎒");
-                        await loadUserData(); // อัปเดตแต้มบนหน้าจอ
-                        await loadRewards();  // รีเฟรชปุ่มแลก
+                        alert("แลกสำเร็จ! ตรวจสอบได้ในแท็บ 'กระเป๋าของฉัน'");
+                        loadUserData();
+                        loadRewards();
                     } else {
                         alert("แลกไม่สำเร็จ: " + result.message);
                     }
-                } catch (err) {
-                    console.error("Redeem Error:", err);
-                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่");
-                }
+                } catch (err) { console.error(err); }
             }
         }
 
-        // ระบบเปลี่ยนหน้าต่าง (ร้านค้า / กระเป๋า)
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById('shop-section').style.display = 'none';
             document.getElementById('inventory-section').style.display = 'none';
-
             if(tab === 'shop') {
                 document.querySelectorAll('.tab')[0].classList.add('active');
                 document.getElementById('shop-section').style.display = 'block';
-                loadRewards(); 
+                loadRewards();
             } else {
                 document.querySelectorAll('.tab')[1].classList.add('active');
                 document.getElementById('inventory-section').style.display = 'block';
-                loadInventory(); 
+                loadInventory();
             }
         }
 
-        // เริ่มต้นทำงาน
         initializeLiff();
     </script>
 </body>
