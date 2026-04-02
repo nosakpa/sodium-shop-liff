@@ -1,124 +1,32 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-width=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Salt Soulty Rewards 🎁</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body {
-            font-family: 'Kanit', sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 0;
-        }
-
-        .header {
-            background-color: #4CAF50;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .points-box {
-            background: #FF9800;
-            color: white;
-            padding: 10px;
-            border-radius: 10px;
-            display: inline-block;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-
-        .tabs {
-            display: flex;
-            background: white;
-            border-bottom: 2px solid #ddd;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            font-weight: bold;
-            color: #555;
-        }
-
-        .tab.active {
-            color: #4CAF50;
-            border-bottom: 3px solid #4CAF50;
-        }
-
-        .container {
-            padding: 20px;
-        }
-
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .card img {
-            width: 80px;
-            height: 80px;
-            border-radius: 8px;
-            object-fit: cover;
-        }
-
-        .card-info {
-            flex: 1;
-        }
-
-        .card-title {
-            font-weight: bold;
-            color: #333;
-            margin: 0 0 5px 0;
-        }
-
-        .card-points {
-            color: #FF9800;
-            font-size: 0.9em;
-            margin: 0;
-        }
-
-        .btn-redeem {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .btn-redeem:disabled {
-            background: #ccc;
-        }
-
-        .btn-use {
-            background: #03A9F4;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        #inventory-section {
-            display: none;
-        }
+        body { font-family: 'Kanit', sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
+        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
+        .points-box { background: #FF9800; color: white; padding: 10px; border-radius: 10px; display: inline-block; margin-top: 10px; font-weight: bold;}
+        .tabs { display: flex; background: white; border-bottom: 2px solid #ddd; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #555; }
+        .tab.active { color: #4CAF50; border-bottom: 3px solid #4CAF50; }
+        .container { padding: 20px; }
+        
+        .card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 15px;}
+        .card img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; }
+        .card-info { flex: 1; }
+        .card-title { font-weight: bold; color: #333; margin: 0 0 5px 0; }
+        .card-points { color: #FF9800; font-size: 0.9em; margin: 0; }
+        .btn-redeem { background: #4CAF50; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-redeem:disabled { background: #ccc; }
+        .btn-use { background: #03A9F4; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        #inventory-section { display: none; }
+        #loading-overlay { text-align: center; padding: 50px; color: #777; }
     </style>
 </head>
-
 <body>
 
     <div class="header">
@@ -144,10 +52,20 @@
     </div>
 
     <script>
-        const LIFF_ID = "2009632908-bNhIr1UY"; // ⚠️ เปลี่ยนเป็น LIFF ID ของคุณ
-        const API_URL = "https://unwitnessed-jeanelle-colacobiotic.ngrok-free.dev/api" // ⚠️ เปลี่ยนเป็น ngrok URL ตอนเอาไปใช้จริง
+        // ⚠️ ต้องแก้ไข 2 บรรทัดนี้ให้เป็นข้อมูลของคุณ!
+        const LIFF_ID = "2009632908-bNhIr1UY"; 
+        const API_URL = "https://unwitnessed-jeanelle-colacobiotic.ngrok-free.dev/api"; 
+
         let currentUserId = "";
         let currentUserPoints = 0;
+
+        // ฟังก์ชันช่วยใส่ Header สำหรับ ngrok
+        const fetchOptions = {
+            headers: {
+                'ngrok-skip-browser-warning': 'true',
+                'Content-Type': 'application/json'
+            }
+        };
 
         // 1. เริ่มต้น LIFF
         async function initializeLiff() {
@@ -156,8 +74,8 @@
                 if (liff.isLoggedIn()) {
                     const profile = await liff.getProfile();
                     currentUserId = profile.userId;
-                    loadUserData();
-                    loadRewards();
+                    await loadUserData();
+                    await loadRewards();
                 } else {
                     liff.login();
                 }
@@ -169,83 +87,104 @@
 
         // 2. ดึงแต้ม User
         async function loadUserData() {
-            const res = await fetch(`${API_URL}/user/${currentUserId}`);
-            const data = await res.json();
-            currentUserPoints = data.points;
-            document.getElementById("user-points").innerText = currentUserPoints;
+            try {
+                const res = await fetch(`${API_URL}/user/${currentUserId}`, fetchOptions);
+                const data = await res.json();
+                currentUserPoints = data.points;
+                document.getElementById("user-points").innerText = currentUserPoints;
+            } catch (err) {
+                console.error("Fetch User Data Error:", err);
+            }
         }
 
         // 3. ดึงรายการของรางวัล (ร้านค้า)
         async function loadRewards() {
-            const res = await fetch(`${API_URL}/rewards`);
-            const rewards = await res.json();
-            const list = document.getElementById("rewards-list");
-            list.innerHTML = "";
-
-            rewards.forEach(item => {
-                const canAfford = currentUserPoints >= item.points_required;
-                list.innerHTML += `
-                    <div class="card">
-                        <img src="${item.image_url}" alt="reward">
-                        <div class="card-info">
-                            <p class="card-title">${item.name}</p>
-                            <p class="card-points">💎 ใช้ ${item.points_required} แต้ม</p>
+            try {
+                const res = await fetch(`${API_URL}/rewards`, fetchOptions);
+                const rewards = await res.json();
+                const list = document.getElementById("rewards-list");
+                list.innerHTML = "";
+                
+                rewards.forEach(item => {
+                    const canAfford = currentUserPoints >= item.points_required;
+                    list.innerHTML += `
+                        <div class="card">
+                            <img src="${item.image_url}" alt="reward">
+                            <div class="card-info">
+                                <p class="card-title">${item.name}</p>
+                                <p class="card-points">💎 ใช้ ${item.points_required} แต้ม</p>
+                            </div>
+                            <button class="btn-redeem" onclick="redeemReward(${item.reward_id}, ${item.points_required})" ${!canAfford ? 'disabled' : ''}>
+                                ${canAfford ? 'แลกเลย' : 'แต้มไม่พอ'}
+                            </button>
                         </div>
-                        <button class="btn-redeem" onclick="redeemReward(${item.reward_id}, ${item.points_required})" ${!canAfford ? 'disabled' : ''}>
-                            แลกเลย
-                        </button>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            } catch (err) {
+                console.error("Fetch Rewards Error:", err);
+                document.getElementById("rewards-list").innerHTML = "โหลดข้อมูลล้มเหลว กรุณาลองใหม่";
+            }
         }
 
         // 4. ดึงกระเป๋าของฉัน
         async function loadInventory() {
-            const res = await fetch(`${API_URL}/inventory/${currentUserId}`);
-            const inventory = await res.json();
-            const list = document.getElementById("inventory-list");
+            try {
+                const res = await fetch(`${API_URL}/inventory/${currentUserId}`, fetchOptions);
+                const inventory = await res.json();
+                const list = document.getElementById("inventory-list");
+                
+                if(inventory.length === 0) {
+                    list.innerHTML = "<p style='text-align:center; color:#999;'>ยังไม่มีคูปองในกระเป๋าจ้า แลกเลยๆ! 🎒</p>";
+                    return;
+                }
 
-            if (inventory.length === 0) {
-                list.innerHTML = "<p>ยังไม่มีคูปองในกระเป๋าจ้า แลกเลยๆ!</p>";
-                return;
-            }
-
-            list.innerHTML = "";
-            inventory.forEach(item => {
-                const isUsed = item.is_used;
-                list.innerHTML += `
-                    <div class="card" style="opacity: ${isUsed ? '0.5' : '1'}">
-                        <img src="${item.rewards.image_url}" alt="reward">
-                        <div class="card-info">
-                            <p class="card-title">${item.rewards.name}</p>
-                            <p class="card-points" style="color: ${isUsed ? 'red' : 'green'};">${isUsed ? 'ถูกใช้แล้ว' : 'พร้อมใช้งาน'}</p>
+                list.innerHTML = "";
+                inventory.forEach(item => {
+                    const isUsed = item.is_used;
+                    list.innerHTML += `
+                        <div class="card" style="opacity: ${isUsed ? '0.5' : '1'}">
+                            <img src="${item.rewards.image_url}" alt="reward">
+                            <div class="card-info">
+                                <p class="card-title">${item.rewards.name}</p>
+                                <p class="card-points" style="color: ${isUsed ? 'red' : 'green'};">${isUsed ? 'ถูกใช้แล้ว' : 'พร้อมใช้งาน'}</p>
+                            </div>
+                            ${!isUsed ? `<button class="btn-use" onclick="alert('ยื่นหน้านี้ให้พนักงานดูเพื่อใช้สิทธิ์เลยจ้า!')">ใช้สิทธิ์</button>` : ''}
                         </div>
-                        ${!isUsed ? `<button class="btn-use" onclick="alert('ยื่นหน้านี้ให้พนักงานดูเพื่อใช้สิทธิ์เลยจ้า!')">ใช้สิทธิ์</button>` : ''}
-                    </div>
-                `;
-            });
+                    `;
+                });
+            } catch (err) {
+                console.error("Fetch Inventory Error:", err);
+            }
         }
 
         // 5. ฟังก์ชันกดแลกรางวัล
         async function redeemReward(rewardId, pointsRequired) {
             if (confirm(`ยืนยันการใช้ ${pointsRequired} แต้มเพื่อแลกของรางวัลนี้ไหม?`)) {
-                const res = await fetch(`${API_URL}/redeem`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: currentUserId,
-                        reward_id: rewardId,
-                        points_required: pointsRequired
-                    })
-                });
-
-                const result = await res.json();
-                if (result.status === 'success') {
-                    alert("แลกสำเร็จ! คูปองอยู่ในกระเป๋าของฉันแล้ว 🎒");
-                    loadUserData(); // โหลดแต้มใหม่ (แต้มลดลง)
-                    loadRewards();  // โหลดร้านค้าใหม่ (อัปเดตปุ่ม)
-                } else {
-                    alert("แลกไม่สำเร็จ: " + result.message);
+                try {
+                    const res = await fetch(`${API_URL}/redeem`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'true' 
+                        },
+                        body: JSON.stringify({
+                            user_id: currentUserId,
+                            reward_id: rewardId,
+                            points_required: pointsRequired
+                        })
+                    });
+                    
+                    const result = await res.json();
+                    if (result.status === 'success') {
+                        alert("แลกสำเร็จ! คูปองอยู่ในกระเป๋าของฉันแล้ว 🎒");
+                        await loadUserData(); // อัปเดตแต้มบนหน้าจอ
+                        await loadRewards();  // รีเฟรชปุ่มแลก
+                    } else {
+                        alert("แลกไม่สำเร็จ: " + result.message);
+                    }
+                } catch (err) {
+                    console.error("Redeem Error:", err);
+                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่");
                 }
             }
         }
@@ -256,20 +195,19 @@
             document.getElementById('shop-section').style.display = 'none';
             document.getElementById('inventory-section').style.display = 'none';
 
-            if (tab === 'shop') {
+            if(tab === 'shop') {
                 document.querySelectorAll('.tab')[0].classList.add('active');
                 document.getElementById('shop-section').style.display = 'block';
-                loadRewards(); // รีเฟรชหน้าร้าน
+                loadRewards(); 
             } else {
                 document.querySelectorAll('.tab')[1].classList.add('active');
                 document.getElementById('inventory-section').style.display = 'block';
-                loadInventory(); // โหลดของในกระเป๋า
+                loadInventory(); 
             }
         }
 
-        // สั่งให้ LIFF ทำงานตอนเปิดเว็บ
+        // เริ่มต้นทำงาน
         initializeLiff();
     </script>
 </body>
-
 </html>
